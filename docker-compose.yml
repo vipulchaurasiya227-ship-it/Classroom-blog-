@@ -1,0 +1,19 @@
+services:
+  classroom-blog:
+    build:
+      context: .
+    container_name: classroom-blog
+    ports:
+      - "5000:5000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-change-this-development-key}
+      DATABASE_PATH: /data/classroom_blog.db
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_API_URL: ${OPENAI_API_URL:-https://api.openai.com/v1/chat/completions}
+    volumes:
+      - classroom_blog_data:/data
+    restart: unless-stopped
+
+volumes:
+  classroom_blog_data:
