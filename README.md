@@ -17,7 +17,6 @@ Behind the Scenes:
 
 Take it for a spin or inspect the implementation under the hood:
 🔗 Live Application: https://classroom-blog-vvvv.vercel.app/
-🛠️ GitHub Source Code: https://github.com/vipulchaurasiya227-ship-it/Classroom-blog-.git
 
 I’m continuously looking to improve my engineering practice. If you're a developer, designer, or tech enthusiast, I’d appreciate any feedback on the application or the repository!
 
