@@ -1,9 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero">
-  <div class="hero-copy"><p class="eyebrow">Classroom Voices · student stories</p><h1>Ideas worth <em>sharing.</em></h1><p>A thoughtful corner of the internet for students and teachers to publish reflections, questions, and discoveries for their classroom community.</p>{% if not g.user %}<div class="hero-actions"><a class="button" href="{{ url_for('register') }}">Create your blog account</a><a class="text-link" href="{{ url_for('login') }}">Already a member? Log in</a></div>{% else %}<div class="hero-actions"><a class="button" href="{{ url_for('new_post') }}">Create a new blog post</a></div>{% endif %}</div>
-  <div class="hero-card"><span>Today's writing spark</span><strong id="topic">Log in to get a fresh topic.</strong>{% if g.user %}<button class="button" onclick="newTopic()">Give me another</button>{% else %}<p>Join the classroom to get a fresh prompt whenever you need one.</p>{% endif %}</div>
+  <div class="hero-copy">
+    <p class="eyebrow">Classroom Voices · student stories</p>
+    <h1>Ideas worth <em>sharing.</em></h1>
+    <p>A thoughtful corner of the internet for students and teachers to publish ideas, stories, and reflections.</p>
+    {% if g.user %}<a class="button" href="{{ url_for('new_post') }}">Share your perspective</a>{% endif %}
+  </div>
+  <div class="hero-card" aria-live="polite">
+    <span>Today's writing spark</span>
+    <strong id="topic">{% if g.user %}Finding a fresh topic…{% else %}Log in to get a fresh topic.{% endif %}</strong>
+    {% if g.user %}<button class="button" type="button" onclick="newTopic()">Give me another</button>{% endif %}
+  </div>
 </section>
+
 <section class="how-it-works">
   <div><p class="eyebrow">How it works</p><h2>Turn your ideas into stories people can read.</h2></div>
   <div class="steps">
@@ -12,19 +22,71 @@
     <article><span>03</span><h3>Reach your readers</h3><p>After teacher review, your approved post appears in Classroom stories for everyone to read and discuss.</p></article>
   </div>
 </section>
-<section class="discovery"><div><p class="eyebrow">Find your next read</p><h2>Explore the classroom</h2></div><form class="filters"><label class="sr-only" for="story-search">Search stories</label><input id="story-search" name="q" value="{{ query }}" placeholder="Search by title, idea, or tag"><label class="sr-only" for="story-category">Filter by category</label><select id="story-category" name="category"><option value="">All categories</option>{% for category in categories %}<option {% if selected_category == category.category %}selected{% endif %}>{{ category.category }}</option>{% endfor %}</select><button class="button" type="submit">Search</button></form></section>
+
+<section class="discovery">
+  <div><p class="eyebrow">Find your next read</p><h2>Explore the classroom</h2></div>
+  <form class="filters" method="get" role="search">
+    <label class="sr-only" for="story-search">Search stories</label>
+    <input id="story-search" name="q" value="{{ query }}" placeholder="Search stories...">
+    <label class="sr-only" for="story-category">Filter by category</label>
+    <select id="story-category" name="category">
+      <option value="">All categories</option>
+      {% for category in categories %}
+        <option value="{{ category }}" {% if request.args.get('category') == category %}selected{% endif %}>{{ category }}</option>
+      {% endfor %}
+    </select>
+    <button class="button" type="submit">Search</button>
+  </form>
+</section>
+
 {% if my_pending_posts %}
-<section class="pending-section"><div class="section-heading"><div><p class="eyebrow">Visible only to you</p><h2>Your posts awaiting review</h2></div><span class="status-badge">Teacher approval required</span></div><div class="pending-grid">{% for post in my_pending_posts %}<article class="pending-card"><p class="meta">{{ post.category }} · submitted {{ post.created_at }}</p><h3><a href="{{ url_for('post_detail', post_id=post.id) }}">{{ post.title }}</a></h3><p>{{ post.body[:180] }}{% if post.body|length > 180 %}...{% endif %}</p><p class="hint">This post will appear in Classroom stories after a teacher approves it.</p></article>{% endfor %}</div></section>
+<section class="pending-section">
+  <div class="section-heading">
+    <div><p class="eyebrow">Visible only to you</p><h2>Your posts awaiting review</h2></div>
+    <span class="status-badge">Teacher approval required</span>
+  </div>
+  <div class="post-grid">
+    {% for post in my_pending_posts %}
+      <article class="post-card">
+        <div class="post-card-top"><span class="category-label">{{ post.category }}</span><span class="status-badge">Awaiting review</span></div>
+        <h3><a href="{{ url_for('post_detail', post_id=post.id) }}">{{ post.title }}</a></h3>
+      </article>
+    {% endfor %}
+  </div>
+</section>
 {% endif %}
-<div class="section-heading"><div><p class="eyebrow">Fresh from the community</p><h2>Classroom stories</h2></div>{% if g.user %}<a href="{{ url_for('new_post') }}">Share your perspective →</a>{% else %}<a href="{{ url_for('register') }}">Start writing →</a>{% endif %}</div>
-<div class="post-grid">
-{% for post in posts %}<article class="post-card"><div class="post-card-top"><span class="category-label">{{ post.category }}</span><span class="post-number">{{ "%02d"|format(loop.index) }}</span></div><h3><a href="{{ url_for('post_detail', post_id=post.id) }}">{{ post.title }}</a></h3><p>{{ post.body[:180] }}{% if post.body|length > 180 %}...{% endif %}</p><div class="post-card-footer"><span class="meta">By {{ post.username }}</span><a class="read-link" href="{{ url_for('post_detail', post_id=post.id) }}">Read story <span aria-hidden="true">↗</span></a></div>{% if post.tags %}<div class="tags">{{ post.tags }}</div>{% endif %}</article>{% else %}<div class="empty"><h3>No stories yet</h3><p>Be the first student to share an idea.</p>{% if not g.user %}<a class="button" href="{{ url_for('register') }}">Create an account and write one</a>{% endif %}</div>{% endfor %}
-</div>
+
+<section class="stories-section">
+  <div class="section-heading">
+    <div><p class="eyebrow">Fresh from the community</p><h2>Classroom stories</h2></div>
+    {% if g.user %}<a href="{{ url_for('new_post') }}">Share your perspective →</a>{% endif %}
+  </div>
+  <div class="post-grid">
+    {% for post in posts %}
+      <article class="post-card">
+        <div class="post-card-top"><span class="category-label">{{ post.category }}</span><span class="post-number">{{ "%02d"|format(loop.index) }}</span></div>
+        <h3><a href="{{ url_for('post_detail', post_id=post.id) }}">{{ post.title }}</a></h3>
+        <p class="meta">by {{ post.username }}</p>
+        {% if post.tags %}<p class="meta">{{ post.tags }}</p>{% endif %}
+      </article>
+    {% else %}
+      <p class="empty-state">No stories found. Try another search or category.</p>
+    {% endfor %}
+  </div>
+</section>
+
 <script>
 async function newTopic() {
-  const response = await fetch("{{ url_for('api_topic') }}");
-  const data = await response.json();
-  document.getElementById("topic").textContent = data.topic;
+  const topic = document.getElementById("topic");
+  topic.textContent = "Finding a fresh topic…";
+  try {
+    const response = await fetch("{{ url_for('api_topic') }}");
+    if (!response.ok) throw new Error("Topic request failed");
+    const data = await response.json();
+    topic.textContent = data.topic || "What is one small thing that made you smile today?";
+  } catch (error) {
+    topic.textContent = "What is one small thing that made you smile today?";
+  }
 }
 {% if g.user %}newTopic();{% endif %}
 </script>
