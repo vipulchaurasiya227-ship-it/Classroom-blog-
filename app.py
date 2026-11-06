@@ -6,6 +6,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 from functools import wraps
+from urllib.parse import urlsplit
 
 import requests
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
@@ -34,14 +35,18 @@ def get_db():
     if "db" not in g:
         g.db = sqlite3.connect(DATABASE)
         g.db.row_factory = sqlite3.Row
+        # SQLite does not enforce foreign keys unless enabled per connection.
+        g.db.execute("PRAGMA foreign_keys = ON")
     return g.db
 
 
-@app.teardown_appcontext
 def close_db(_error):
     db = g.pop("db", None)
     if db is not None:
         db.close()
+
+
+app.teardown_appcontext(close_db)
 
 
 def init_db():
@@ -119,6 +124,14 @@ def init_db():
 
 def now():
     return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def safe_redirect_target(target):
+    """Allow only local absolute paths in post-login redirects."""
+    if not target or not target.startswith("/") or target.startswith("//") or "\\" in target:
+        return False
+    parsed = urlsplit(target)
+    return not parsed.scheme and not parsed.netloc
 
 
 def send_password_reset_email(email, otp):
@@ -230,7 +243,7 @@ def register():
                 flash("Account created. You can now log in.", "success")
                 return redirect(url_for("login"))
             except sqlite3.IntegrityError:
-                flash("That username is already taken.", "warning")
+                flash("That username or email is already in use.", "warning")
     return render_template("auth.html", title="Create account", action="register")
 
 
@@ -241,7 +254,8 @@ def login():
         if user and check_password_hash(user["password_hash"], request.form.get("password", "")):
             session.clear()
             session["user_id"] = user["id"]
-            return redirect(request.args.get("next") or url_for("index"))
+            next_url = request.args.get("next", "")
+            return redirect(next_url if safe_redirect_target(next_url) else url_for("index"))
         flash("Incorrect username or password.", "warning")
     return render_template("auth.html", title="Log in", action="login")
 
